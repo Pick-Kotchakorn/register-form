@@ -524,10 +524,12 @@
         
         // Google Sheets integration
         async function sendToGoogleSheets(data) {
-            // ใส่ URL ของ Google Apps Script Web App ที่นี่
-            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzvWqLW67bEDKJ9INXRynDcYbf0Qk_VNGCE2YmBRgG_2fxshaBkbDEsC1-7_ts4PCyXfA/exec';
+            // ⚠️ แทนที่ URL นี้ด้วย Web App URL ที่คุณได้จาก Google Apps Script
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby0fB1UR_bO2x6iGZm3KmyIJYak_cmI0JKQXxecybRIWpUerUaUscXxZ1g1fhPIo9HGcA/exec';
             
             try {
+                console.log('Sending data to Google Sheets:', data);
+                
                 const response = await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'cors',
@@ -537,18 +539,24 @@
                     body: JSON.stringify(data)
                 });
                 
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
-                    throw new Error('ไม่สามารถส่งข้อมูลได้');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                return await response.json();
+                const result = await response.json();
+                console.log('Google Sheets response:', result);
+                
+                if (!result.success) {
+                    throw new Error(result.message || result.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                }
+                
+                return result;
+                
             } catch (error) {
                 console.error('Google Sheets error:', error);
-                // For demo purposes, we'll simulate success
-                // Remove this in production
-                return new Promise(resolve => {
-                    setTimeout(() => resolve({ success: true }), 1000);
-                });
+                throw new Error(`ไม่สามารถบันทึกข้อมูลได้: ${error.message}`);
             }
         }
         
