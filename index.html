@@ -501,8 +501,8 @@
                 
                 // Reset form
                 this.reset();
-                
                 // Auto close LIFF window after 3 seconds
+                
                 setTimeout(() => {
                     if (typeof liff !== 'undefined') {
                         liff.closeWindow();
@@ -523,70 +523,50 @@
         });
         
         // Google Sheets integration
-        async function sendToGoogleSheets(data) {
-            // ⚠️ แทนที่ URL นี้ด้วย Web App URL ที่คุณได้จาก Google Apps Script
-            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzW2e1IN7GAUI8l708ODVaSqLDCjlzz0nJ6IvnFBcYGLMEMc3FHhI9sdIk0QTA7vWmCqw/exec';
+async function sendToGoogleSheets(data) {
+    // ⚠️ แทนที่ URL นี้ด้วย Web App URL ที่คุณได้จาก Google Apps Script
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQ4I2_dURsd9449wx9BSJ0uAmXRuAzEJPqQ1JKbHCk7jF992Y4OVm9gLj3niAzJikRXQ/exec';
+    
+    try {
+        console.log('Sending data to Google Sheets:', data);
+        
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+            redirect: 'follow'
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        // ตรวจสอบว่า response เป็น JSON หรือไม่
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const result = await response.json();
+            console.log('Google Sheets response:', result);
             
-            try {
-                console.log('Sending data to Google Sheets:', data);
-                
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                console.log('Response status:', response.status);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                console.log('Google Sheets response:', result);
-                
-                if (!result.success) {
-                    throw new Error(result.message || result.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-                }
-                
-                return result;
-                
-            } catch (error) {
-                console.error('Google Sheets error:', error);
-                throw new Error(`ไม่สามารถบันทึกข้อมูลได้: ${error.message}`);
+            if (!result.success) {
+                throw new Error(result.message || result.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
             }
+            
+            return result;
+        } else {
+            // ถ้าไม่ใช่ JSON ให้อ่านเป็น text
+            const text = await response.text();
+            console.log('Response text:', text);
+            throw new Error('Response ไม่ใช่ JSON format');
         }
         
-        // Auto-format phone number
-        document.getElementById('phone').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 0) {
-                if (value.length <= 3) {
-                    value = value;
-                } else if (value.length <= 6) {
-                    value = value.substring(0, 3) + '-' + value.substring(3);
-                } else if (value.length <= 10) {
-                    value = value.substring(0, 3) + '-' + value.substring(3, 6) + '-' + value.substring(6);
-                } else {
-                    value = value.substring(0, 3) + '-' + value.substring(3, 6) + '-' + value.substring(6, 10);
-                }
-            }
-            e.target.value = value;
-        });
+    } catch (error) {
+        console.error('Google Sheets error:', error);
         
-        // Add smooth animations
-        document.querySelectorAll('.form-control').forEach(input => {
-            input.addEventListener('focus', function() {
-                this.parentElement.style.transform = 'scale(1.02)';
-            });
-            
-            input.addEventListener('blur', function() {
-                this.parentElement.style.transform = 'scale(1)';
-            });
-        });
-    </script>
-</body>
-</html>
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('ไม่สามารถเชื่อมต่อกับ Google Sheets ได้ กรุณาตรวจสอบ URL');
+        } else {
+            throw new Error(`ไม่สามารถบันทึกข้อมูลได้: ${error.message}`);
+        }
+    }
+}
